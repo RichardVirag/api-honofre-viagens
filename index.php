@@ -369,14 +369,41 @@
             $id = str_replace("/banners/remove/", "", $_SERVER['REQUEST_URI']);
             if (is_numeric($id)) {
                 if (isValidToken($db)) {
-                    $returnData = $db->query("SELECT src FROM banners WHERE id = ".$id);
+                    $returnSrc = $db->query("SELECT src FROM banners WHERE id = ".$id);
 
-                    if ($returnData) {
-                        $returnSrc = $db->query("SELECT src FROM banners WHERE id = " .$id);
+                    if ($returnSrc) {
                         $currentSrc = str_replace('http://localhost:4500/uploads/', '', $returnSrc[0]['src']);
                         unlink(dirname(__FILE__) . "./uploads/" .$currentSrc);
 
                         $db->query("DELETE FROM banners WHERE id = ".$id);
+                    }
+                    else {
+                      http_response_code(405);
+                    }
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
+            }
+        }
+        /* Packages remove */
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/remove/') !== false) {
+            $id = str_replace("/packages/remove/", "", $_SERVER['REQUEST_URI']);
+            if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $returnSrc = $db->query("SELECT src FROM package_images WHERE packages_id = ".$id);
+
+                    if ($returnSrc) {
+                        foreach ($returnSrc as $value) {
+                            $currentSrc = str_replace('http://localhost:4500/uploads/', '', $value['src']);
+                            unlink(dirname(__FILE__) . "./uploads/" .$currentSrc);
+                        }
+
+                        $db->query("DELETE FROM package_images WHERE packages_id = ".$id);
+                        $db->query("DELETE FROM packages WHERE id = ".$id);
                     }
                     else {
                       http_response_code(405);
