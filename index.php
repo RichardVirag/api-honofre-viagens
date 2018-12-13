@@ -162,7 +162,7 @@
                 http_response_code(401);
             }
         }
-        /* Adicionar imagens do Pacotes */
+        /* Adicionar imagens do Pacote */
         elseif ($_SERVER['REQUEST_URI'] == "/packages/image/add") {
             if (isValidToken($db)) {
 
@@ -182,6 +182,31 @@
             }
             else {
                 http_response_code(401);
+            }
+        }
+        /* Adicionar categorias do Pacote */
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/categories/add') !== false) {
+            $id = str_replace("/packages/categories/add/", "", $_SERVER['REQUEST_URI']);
+            if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $postBody = takePostBody();
+                    if ($postBody) {
+                        foreach ($postBody as $value) {
+                            $db->query("INSERT INTO categories_packages(categories_id, packages_id) VALUES (" .$value->id ."," .$id .")");
+                            http_response_code(200);
+                        }
+                        http_response_code(200);
+                    }
+                    else {
+                        http_response_code(405);
+                    }
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
             }
         }
         /* Add Banners */
