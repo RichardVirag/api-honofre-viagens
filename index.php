@@ -537,13 +537,13 @@
                             $currentSrc = str_replace('http://localhost:4500/uploads/', '', $value['src']);
                             unlink(dirname(__FILE__) . "./uploads/" .$currentSrc);
                         }
+                    }
 
-                        $db->query("DELETE FROM package_images WHERE packages_id = ".$id);
-                        $db->query("DELETE FROM packages WHERE id = ".$id);
-                    }
-                    else {
-                      http_response_code(405);
-                    }
+                    $db->query("DELETE FROM package_images WHERE packages_id = ".$id);
+                    $db->query("DELETE FROM categories_packages WHERE packages_id = ".$id);
+                    $db->query("DELETE FROM packages WHERE id = ".$id);
+
+                    http_response_code(200);
                 }
                 else {
                     http_response_code(401);
