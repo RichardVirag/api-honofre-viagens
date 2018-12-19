@@ -242,6 +242,31 @@
                 http_response_code(405);
             }
         }
+        /* Editar categorias do Pacotes */
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/categories/update') !== false) {
+          $id = str_replace("/packages/categories/update/", "", $_SERVER['REQUEST_URI']);
+          if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $postBody = takePostBody();
+                    if ($postBody) {
+                        $db->query("DELETE FROM categories_packages WHERE packages_id = ".$id);
+                        foreach ($postBody as $value) {
+                            $db->query("INSERT INTO categories_packages(categories_id, packages_id) VALUES (" .$value->id ."," .$id .")");
+                        }
+                        http_response_code(200);
+                    }
+                    else {
+                        http_response_code(405);
+                    }
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
+            }
+        }
         /* Editar imagens do Pacotes */
         elseif (strpos($_SERVER['REQUEST_URI'], '/packages/image/edit') !== false) {
             $id = str_replace("/packages/image/edit/", "", $_SERVER['REQUEST_URI']);
