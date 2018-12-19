@@ -209,6 +209,93 @@
                 http_response_code(405);
             }
         }
+        /* Editar Pacotes */
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/edit') !== false) {
+            $id = str_replace("/packages/edit/", "", $_SERVER['REQUEST_URI']);
+            if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $postBody = takePostBody();
+
+                    if (isset($postBody->title) &&
+                        isset($postBody->status) &&
+                        isset($postBody->short_description) &&
+                        isset($postBody->description) &&
+                        isset($postBody->value)) {
+                        $title = $postBody->title;
+                        $status_id = $postBody->status;
+                        $short_description = $postBody->short_description;
+                        $description = $postBody->description;
+                        $value = $postBody->value;
+
+                        $db->query("UPDATE packages SET status_id=" .$status_id .",title='" .$title ."',short_description='" .$short_description ."',description='" .$description ."',value=".$value ." WHERE id=" .$id);
+                        http_response_code(200);
+                    }
+                    else {
+                        http_response_code(400);
+                    }
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
+            }
+        }
+        /* Editar imagens do Pacotes */
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/image/edit') !== false) {
+            $id = str_replace("/packages/image/edit/", "", $_SERVER['REQUEST_URI']);
+            if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $sequence = $_REQUEST['sequence'];
+                    $src = $_REQUEST['src'];
+                    $file = $_FILES['packageImage'];
+
+                    $SLQExistSequence = $db->query("SELECT * FROM package_images WHERE packages_id = " .$id ." AND sequence = " .$sequence);
+
+                    if ($SLQExistSequence) {
+                        if (isset($file)) {
+                            $db->query("DELETE FROM package_images WHERE packages_id = ".$id ." AND sequence = " .$sequence);
+                            $currentSrc = str_replace('http://localhost:4500/uploads/', '', $SLQExistSequence[0]['src']);
+                            unlink(dirname(__FILE__) . "./uploads/" .$currentSrc);
+
+                            $new_image_name = md5(uniqid(rand(), true));
+                            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                            $new_image_name = $new_image_name ."." .$ext;
+
+                            move_uploaded_file($file['tmp_name'], dirname(__FILE__) . "./uploads/" .$new_image_name);
+
+                            $db->query("INSERT INTO package_images(packages_id, sequence, src) VALUES (" .$id ."," .$sequence .",'" ."http://localhost:4500" ."/uploads/" .$new_image_name ."')");
+                            http_response_code(200);
+                        }
+                        else if (!isset($src) || $src == "") {
+                            $db->query("DELETE FROM package_images WHERE packages_id = ".$id ." AND sequence = " .$sequence);
+                            $currentSrc = str_replace('http://localhost:4500/uploads/', '', $SLQExistSequence[0]['src']);
+                            unlink(dirname(__FILE__) . "./uploads/" .$currentSrc);
+                            http_response_code(200);
+                        }
+                    }
+                    else {
+                        if (isset($file)) {
+                            $new_image_name = md5(uniqid(rand(), true));
+                            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                            $new_image_name = $new_image_name ."." .$ext;
+
+                            move_uploaded_file($file['tmp_name'], dirname(__FILE__) . "./uploads/" .$new_image_name);
+
+                            $db->query("INSERT INTO package_images(packages_id, sequence, src) VALUES (" .$id ."," .$sequence .",'" ."http://localhost:4500" ."/uploads/" .$new_image_name ."')");
+                            http_response_code(200);
+                        }
+                    }
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
+            }
+        }
         /* Add Banners */
         elseif ($_SERVER['REQUEST_URI'] == "/banners/add") {
             if (isValidToken($db)) {
@@ -359,6 +446,30 @@
             }
             else {
                 http_response_code(401);
+            }
+        }
+        elseif (strpos($_SERVER['REQUEST_URI'], '/packages/extrainfo') !== false) {
+            $id = str_replace("/packages/extrainfo/", "", $_SERVER['REQUEST_URI']);
+            if (is_numeric($id)) {
+                if (isValidToken($db)) {
+                    $result = [];
+                    $returnData = $db->query("SELECT short_description, description FROM packages WHERE id = " .$id);
+                    $result['short_description'] = $returnData[0]['short_description'];
+                    $result['description'] = $returnData[0][1];
+                    $returnData = $db->query("SELECT id, sequence, src FROM package_images WHERE packages_id = " .$id);
+                    $result['images'] = $returnData;
+                    $returnData = $db->query("SELECT cp.categories_id as id, (SELECT ct.title from categories as ct WHERE ct.id = c.parent_id) as parent, c.title FROM categories_packages AS cp INNER JOIN categories AS c ON c.id = cp.categories_id WHERE packages_id = " .$id);
+                    $result['categories'] = $returnData;
+
+                    echo json_encode($result);
+                    http_response_code(200);
+                }
+                else {
+                    http_response_code(401);
+                }
+            }
+            else {
+                http_response_code(405);
             }
         }
         else {
