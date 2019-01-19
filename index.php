@@ -1,4 +1,6 @@
 <?php
+    date_default_timezone_set('Brazil/East');
+
     if (isset($_SERVER['HTTP_ORIGIN'])) {
         header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
         header('Access-Control-Allow-Credentials: true');
@@ -23,7 +25,6 @@
         /* Login */
         if ($_GET['url'] == "auth") {
             $postBody = takePostBody();
-
             if ($postBody->username && $postBody->password) {
                 $username = $postBody->username;
                 $password = $postBody->password;
@@ -32,15 +33,20 @@
 
                 if ($returnData) {
                     $currentUser = $returnData[0][username];
-                    if($returnData[0][active_token] == NULL) {
+
+                    if($returnData[0][active_token] == NULL || $returnData[0][limit_date] == NULL || date("d/m/Y H:i:s") > $returnData[0][limit_date]) {
                         $newToken = md5(uniqid(rand(), true));
-                        $db->query("UPDATE users SET active_token='".$newToken."' WHERE username='".$currentUser."'");
+                        $tokenTime = date("Y/m/d H:i:s", strtotime("+30 minutes"));
+                        $db->query("UPDATE users SET active_token='".$newToken."', limit_date='".$tokenTime."' WHERE username='".$currentUser."'");
                         echo('{"current_user":"'.$currentUser.'","token":"'.$newToken.'"}');
                     }
                     else {
                         $currentTokenr = $returnData[0][active_token];
+                        $tokenTime = date("Y/m/d H:i:s", strtotime("+30 minutes"));
+                        $db->query("UPDATE users SET limit_date='".$tokenTime."' WHERE username='".$currentUser."'");
                         echo('{"current_user":"'.$currentUser.'","token":"'.$currentTokenr.'"}');
                     }
+
                     http_response_code(200);
                 }
                 else {
@@ -598,7 +604,20 @@
         if(isset($headers['Authorization'])){
             $token = $headers['Authorization'];
         }
+
         $returnData = $db->query("SELECT * FROM users WHERE active_token='".$token."'");
-        return $returnData;
+
+        if ($returnData) {
+            if (date("Y/m/d H:i:s") > date("Y/m/d H:i:s", strtotime($returnData[0][limit_date]))) {
+                return false;
+            }
+            $currentUser = $returnData[0][username];
+            $tokenTime = date("Y/m/d H:i:s", strtotime("+30 minutes"));
+            $db->query("UPDATE users SET limit_date='".$tokenTime."' WHERE username='".$currentUser."'");
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 ?>
